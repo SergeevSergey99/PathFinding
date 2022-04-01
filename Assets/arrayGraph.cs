@@ -56,11 +56,11 @@ public class arrayGraph : MonoBehaviour
     public Vector2 startTarget;
     public Vector2 endTarget;
 
-    List<Vector2> FindPath(int startX, int startY, int endX, int endY)
+    List<Vector2> FindPathDFS(int startX, int startY, int endX, int endY)
     {
         visited = new bool[width, height];
 
-        var path = FindPathREC(startX, startY, endX, endY);
+        var path = FindPathDFSREC(startX, startY, endX, endY);
         
         if(path.Count == 0)
             Debug.Log("Пути нет");
@@ -68,7 +68,7 @@ public class arrayGraph : MonoBehaviour
         return path;
     }
 
-    List<Vector2> FindPathREC(int startX, int startY, int endX, int endY)
+    List<Vector2> FindPathDFSREC(int startX, int startY, int endX, int endY)
     {
         List<Vector2> indexesR = new List<Vector2>();
         List<Vector2> indexesL = new List<Vector2>();
@@ -84,13 +84,13 @@ public class arrayGraph : MonoBehaviour
         visited[startX, startY] = true;
 
         if (startX + 1 < width && visited[startX + 1, startY] == false && arr[startX+1, startY] == 1)
-            indexesR = (FindPathREC(startX + 1, startY, endX, endY));
+            indexesR = (FindPathDFSREC(startX + 1, startY, endX, endY));
         if (startX - 1 >= 0 && visited[startX - 1, startY] == false && arr[startX-1, startY] == 1)
-            indexesL = (FindPathREC(startX - 1, startY, endX, endY));
+            indexesL = (FindPathDFSREC(startX - 1, startY, endX, endY));
         if (startY + 1 < height && visited[startX, startY + 1] == false && arr[startX, startY+1] == 1)
-            indexesU = (FindPathREC(startX, startY + 1, endX, endY));
+            indexesU = (FindPathDFSREC(startX, startY + 1, endX, endY));
         if (startY - 1 >= 0 && visited[startX, startY - 1] == false && arr[startX, startY-1] == 1)
-            indexesD = FindPathREC(startX, startY - 1, endX, endY);
+            indexesD = FindPathDFSREC(startX, startY - 1, endX, endY);
         
         visited[startX, startY] = false;
         
@@ -123,13 +123,85 @@ public class arrayGraph : MonoBehaviour
         return new List<Vector2>();
     }
 
+
+    public struct POINT
+    {
+        public int x;
+        public int y;
+        public List<Vector2> path;
+    }
+    List<Vector2> FindPathBFS(int startX, int startY, int endX, int endY)
+    {
+        visited = new bool[width, height];
+        List<POINT> queue = new List<POINT>();
+        List<POINT> nextQueue = new List<POINT>();
+
+        POINT start = new POINT();
+        start.x = startX;
+        start.y = startY;
+        start.path = new List<Vector2>();
+        start.path.Add(new Vector2(startX, startY));
+
+        queue.Add(start);
+
+        visited[start.x, start.y] = true;
+
+        while (queue.Count > 0)
+        {
+            var curr = queue[0];
+            if (curr.x == endX && curr.y == endY)
+                return curr.path;
+            
+            
+            CheckNext(1,0, curr, ref nextQueue);
+            CheckNext(-1,0, curr, ref nextQueue);
+            CheckNext(0,1, curr, ref nextQueue);
+            CheckNext(0,-1, curr, ref nextQueue);
+            
+            CheckNext(1,1, curr, ref nextQueue);
+            CheckNext(-1,1, curr, ref nextQueue);
+            CheckNext(-1,1, curr, ref nextQueue);
+            CheckNext(1,-1, curr, ref nextQueue);
+            
+            queue.RemoveAt(0);
+            
+            // Next Level
+            if (queue.Count == 0)
+            {
+                queue = new List<POINT>(nextQueue);
+                nextQueue.Clear();
+            }
+        }
+
+        return new List<Vector2>();
+    }
+
+    void CheckNext(int dX, int dY, POINT point, ref List<POINT> q)
+    {
+        var p = new POINT();
+        p.x = point.x;
+        p.y = point.y;
+        p.path = new List<Vector2>(point.path);
+        
+        if (p.x + dX < width && p.x + dX >= 0 && p.y + dY < height && p.y + dY >= 0
+            && visited[p.x + dX, p.y + dY] == false && arr[p.x + dX, p.y + dY] == 1)
+        {
+            p.x += dX;
+            p.y += dY;
+            p.path.Add(new Vector2(p.x, p.y));
+            q.Add(p);
+
+            visited[p.x, p.y] = true;
+        }
+    }
+    
     public void startFinding()
     {
         foreach (Transform VARIABLE in pathArea.transform)
         {
             Destroy(VARIABLE.gameObject);
         }
-        var path = FindPath((int)startTarget.x, (int)startTarget.y, (int)endTarget.x, (int)endTarget.y);
+        var path = FindPathBFS((int)startTarget.x, (int)startTarget.y, (int)endTarget.x, (int)endTarget.y);
 
         foreach (var node in path)
         {
